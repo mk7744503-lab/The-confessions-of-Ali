@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Saare Dots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500;1,600&family=Jost:wght@300;400&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--night:#090713;--rose:#ff6b8b;--gold:#ffd68a;--ivory:#fbf1e6;--blood:#c1122f}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden;background:var(--night);color:var(--ivory);font-family:'Jost',system-ui,sans-serif;font-weight:300;line-height:1.7;touch-action:none;-webkit-user-select:none;user-select:none}
+#bg{position:fixed;inset:0;z-index:0;background:#090713 center/cover no-repeat}
+#bg video{width:100%;height:100%;object-fit:cover}
+#bg::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(9,7,19,.72),rgba(9,7,19,.82));transition:background 2s}
+body.dark #bg::after{background:linear-gradient(rgba(30,3,12,.75),rgba(9,2,6,.88))}
+canvas{position:fixed;inset:0;width:100%;height:100%;z-index:1}
+#vig{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;box-shadow:inset 0 0 14vmax rgba(193,18,47,.75);transition:opacity 1.5s}
+body.dark #vig{opacity:1;animation:beat 1s infinite}
+@keyframes beat{0%,100%{box-shadow:inset 0 0 12vmax rgba(193,18,47,.5)}12%{box-shadow:inset 0 0 20vmax rgba(193,18,47,.95)}28%{box-shadow:inset 0 0 14vmax rgba(193,18,47,.6)}38%{box-shadow:inset 0 0 19vmax rgba(193,18,47,.85)}}
+body.shake{animation:sh .35s}
+@keyframes sh{20%{transform:translate(-3px,2px)}50%{transform:translate(3px,-2px)}80%{transform:translate(-2px,-1px)}}
+.fx{position:fixed;z-index:3}
+.serif,#card,#sub,#love h2,#love .q,.msg,#gate h1{font-family:'Cormorant Garamond',Georgia,serif}
+#hud{top:max(1rem,env(safe-area-inset-top));left:0;right:0;text-align:center;font-size:.95rem;opacity:.8;pointer-events:none}
+#hud b{color:var(--gold);font-weight:400}
+#card{left:50%;bottom:max(2.2rem,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(88vw,30rem);text-align:center;font-style:italic;font-size:clamp(1.3rem,4.6vw,1.7rem);line-height:1.5;opacity:0;transition:opacity .9s;pointer-events:none;text-shadow:0 2px 14px #090713}
+#card.on{opacity:1}
+#card .e{display:block;font-size:2rem;margin-bottom:.3rem;font-style:normal}
+#sub{left:50%;top:46%;transform:translate(-50%,-50%);width:min(88vw,32rem);text-align:center;font-style:italic;font-size:clamp(1.5rem,5.4vw,2.3rem);line-height:1.55;opacity:0;transition:opacity 1s;pointer-events:none;text-shadow:0 2px 20px #000}
+#sub.on{opacity:1}#sub.low{top:76%;font-size:clamp(1.2rem,4.4vw,1.6rem)}
+.btn{padding:.9rem 2.2rem;border-radius:999px;border:1px solid var(--gold);background:rgba(9,7,19,.7);color:var(--gold);font:inherit;font-size:1.1rem;cursor:pointer;transition:background .3s,color .3s}
+.btn:hover,.btn:focus-visible{background:var(--gold);color:var(--night);outline:none}
+.btn.rose{background:var(--rose);border-color:var(--rose);color:#fff;box-shadow:0 0 30px rgba(255,107,139,.5)}
+#nb{left:50%;bottom:max(3rem,env(safe-area-inset-bottom));transform:translateX(-50%);display:none;animation:fl 2.4s ease-in-out infinite}
+@keyframes fl{50%{transform:translate(-50%,-6px)}}
+#seals{left:0;right:0;bottom:max(7rem,env(safe-area-inset-bottom));display:none;justify-content:center;gap:1.1rem}
+#seals button{width:4.2rem;height:4.2rem;border-radius:50%;font-size:1.8rem;border:2px solid #7a0a1f;background:radial-gradient(#e0314f,#8e0f26);cursor:pointer;box-shadow:0 0 24px rgba(193,18,47,.6);transition:transform .3s,opacity .6s}
+#seals button.seen{opacity:.4;transform:scale(.85)}
+#love{inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.5rem;opacity:0;transition:opacity 2s}
+#love.on{opacity:1}
+#love h2{font-style:italic;font-weight:600;font-size:clamp(3.2rem,15vw,8rem);line-height:1.05;color:var(--rose);text-shadow:0 0 50px rgba(255,107,139,.6);min-height:1.1em}
+#love .q{font-size:clamp(1.3rem,4.6vw,1.7rem);font-style:italic;margin-top:.6rem;opacity:.9}
+.row{display:flex;gap:.9rem;justify-content:center;flex-wrap:wrap;margin-top:1.6rem}
+.btn[aria-disabled=true]{opacity:.45;cursor:not-allowed;border-color:rgba(251,241,230,.4);color:var(--ivory)}
+.msg{font-style:italic;font-size:1.5rem;line-height:1.5;max-width:26ch;margin-top:1rem}
+.note{margin-top:1rem;font-size:.9rem;opacity:.7;max-width:34ch}
+#toast{left:50%;bottom:16%;transform:translateX(-50%);background:rgba(9,7,19,.85);border:1px solid var(--gold);color:var(--gold);padding:.5rem 1rem;border-radius:999px;opacity:0;transition:opacity .4s;pointer-events:none;font-size:.95rem;white-space:nowrap}
+#toast.on{opacity:1}
+#gate{position:fixed;inset:0;z-index:20;background:var(--night);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;transition:opacity 1.2s}
+#gate.out{opacity:0;pointer-events:none}
+#gate h1{font-style:italic;font-weight:600;font-size:clamp(2.1rem,8vw,3.8rem);line-height:1.2;color:var(--rose);max-width:15ch}
+#gate p{margin-top:1rem;opacity:.75;max-width:32ch}#gate .btn{margin-top:2rem}
+#snd{top:max(.8rem,env(safe-area-inset-top));right:.8rem;z-index:10;background:rgba(9,7,19,.6);border:1px solid rgba(255,214,138,.35);color:var(--gold);width:2.5rem;height:2.5rem;border-radius:50%;cursor:pointer;display:none}
+button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){#nb{animation:none}body.dark #vig{animation:none}body.shake{animation:none}#card,#sub,#love,#gate{transition:none}}
+#gate{background:radial-gradient(ellipse at 50% 30%,rgba(60,10,35,.55),rgba(9,7,19,.92) 70%);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#chat{width:min(88vw,26rem);display:flex;flex-direction:column;gap:.7rem;min-height:15rem;justify-content:flex-end}
+.bub{max-width:82%;padding:.65rem 1rem;border-radius:18px;font-size:1.1rem;line-height:1.45;opacity:0;transform:translateY(8px);transition:opacity .6s,transform .6s}
+.bub.in{opacity:1;transform:none}
+.bub.her{align-self:flex-start;background:rgba(251,241,230,.14);border-bottom-left-radius:4px;text-align:left}
+.bub.me{align-self:flex-end;background:var(--rose);color:#fff;border-bottom-right-radius:4px;text-align:left;box-shadow:0 0 24px rgba(255,107,139,.4)}
+.bub.dots span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--ivory);animation:td 1s infinite}
+.bub.dots span:nth-child(2){animation-delay:.2s}.bub.dots span:nth-child(3){animation-delay:.4s}
+@keyframes td{50%{opacity:.25;transform:translateY(-4px)}}
+.who{align-self:flex-start;font-size:.8rem;opacity:.6;margin-bottom:-.3rem}
+#gate .hp{margin-top:1rem;font-size:.85rem;opacity:.6}
+#card{background:rgba(9,7,19,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,214,138,.28);border-radius:16px;padding:1rem 1.2rem}
+#meter{left:50%;bottom:max(5rem,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(80vw,22rem);display:none;text-align:center}
+#mv{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:2.4rem;color:var(--gold);line-height:1.2;min-height:2.6rem}
+#mr{width:100%;margin-top:.6rem;accent-color:var(--rose);height:2rem;touch-action:pan-x}
+#gate{background:#000;backdrop-filter:none;-webkit-backdrop-filter:none;z-index:20}
+#il{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:clamp(1.6rem,5.6vw,2.3rem);max-width:21ch;min-height:6.5rem;line-height:1.5;opacity:0;transition:opacity 1.3s;animation:gl 3s infinite}
+#il.on{opacity:1}
+@keyframes gl{0%,100%{text-shadow:0 0 0 transparent}91%{text-shadow:2px 0 #ff2a5a,-2px 0 #36d1ff}93%{text-shadow:-3px 0 #ff2a5a,3px 0 #36d1ff}95%{text-shadow:0 0 0 transparent}}
+#scan{margin-top:2rem;width:7.8rem;height:7.8rem;border-radius:50%;display:none;align-items:center;justify-content:center;background:conic-gradient(var(--rose) calc(var(--p,0)*1%),rgba(255,255,255,.1) 0);cursor:pointer;touch-action:none;position:relative;animation:sp 1.6s infinite;-webkit-tap-highlight-color:transparent}
+#scan::before{content:"";position:absolute;inset:6px;border-radius:50%;background:#0d0814}
+#scan span{position:relative;font-size:2.8rem}
+@keyframes sp{50%{box-shadow:0 0 44px rgba(255,107,139,.65)}}
+#sct{margin-top:1.1rem;font-size:.95rem;opacity:.75;min-height:1.6rem}
+#cd{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:600;font-size:min(48vw,15rem);color:var(--rose);text-shadow:0 0 70px rgba(255,107,139,.8);background:#000}
+.door{position:fixed;top:0;bottom:0;width:50.2%;background:#000;z-index:19;display:none;transition:transform 2.2s cubic-bezier(.7,0,.2,1)}
+#dl{left:0;border-right:1px solid rgba(255,214,138,.55)}#dr{right:0;border-left:1px solid rgba(255,214,138,.55)}
+#dl.open{transform:translateX(-101%)}#dr.open{transform:translateX(101%)}
+#flash{position:fixed;inset:0;background:#fff;z-index:30;opacity:0;pointer-events:none;transition:opacity 1.4s}
+.msg{transition:opacity .6s;min-height:3.2rem}
+#seals{bottom:max(1.8rem,env(safe-area-inset-bottom))}
+#card.hi{bottom:8.6rem}
+#sub.top{top:13%;font-size:clamp(1.15rem,4.2vw,1.5rem)}
+#blk{position:fixed;inset:0;background:#000;z-index:25;opacity:0;pointer-events:none;transition:opacity 1.2s;display:flex;align-items:center;justify-content:center;text-align:center;padding:2rem}
+#blk.on{opacity:1}
+#blk p{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:clamp(1.5rem,5.4vw,2.2rem);opacity:0;transition:opacity 1.4s;max-width:20ch;line-height:1.5}
+#blk p.on{opacity:1}
+#bg{will-change:transform}
+#chap{position:fixed;inset:0;z-index:24;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 1s;text-align:center;padding:1rem}
+#chap.on{opacity:1}
+#chap .n{font-size:.85rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);opacity:.85}
+#chap .t{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(2.6rem,11vw,5rem);color:var(--rose);margin:.5rem 0;line-height:1.15;text-shadow:0 0 40px rgba(255,107,139,.55)}
+#chap .ln{display:block;height:1px;width:0;background:linear-gradient(90deg,transparent,var(--gold),transparent);transition:width 1.8s .3s}
+#chap.on .ln{width:min(60vw,18rem)}
+#chap .k{margin-top:1rem;font-size:.82rem;opacity:.55;letter-spacing:.08em}
+#paper{left:50%;top:47%;transform:translate(-50%,-50%) rotate(-1.4deg);width:min(88vw,25rem);background:linear-gradient(#f6ead2,#ecdcbc);color:#2a1620;border-radius:3px;padding:1.8rem 1.5rem;font-family:'Caveat','Segoe Script',cursive;font-size:clamp(1.4rem,5.2vw,1.8rem);line-height:1.55;text-align:left;box-shadow:0 20px 60px #000,inset 0 0 40px rgba(120,80,30,.28);opacity:0;display:none;transition:opacity 1.5s,filter 3.4s,transform 3.4s;pointer-events:none;white-space:pre-wrap;min-height:15rem}
+#paper.on{opacity:1}
+#paper.burn{filter:brightness(.2) sepia(1) saturate(5) blur(1px);opacity:0;transform:translate(-50%,-64%) rotate(-3deg) scale(.95)}
+#chap::before{content:"";position:absolute;width:44vmax;height:44vmax;border-radius:50%;background:radial-gradient(rgba(255,60,100,.3),transparent 65%);animation:orb 2.6s ease-in-out infinite}
+@keyframes orb{50%{transform:scale(1.18);opacity:.7}}
+#chap>*{position:relative}
+#chap .n{opacity:0;letter-spacing:1em;transition:opacity 1.2s .1s,letter-spacing 2s .1s}
+#chap.on .n{opacity:.9;letter-spacing:.35em}
+#chap .t span{display:inline-block;opacity:0;filter:blur(14px);transform:translateY(26px) scale(1.35)}
+#chap.on .t span{animation:rv 1.1s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:calc(var(--i)*.075s + .55s)}
+@keyframes rv{60%{filter:blur(2px)}to{opacity:1;filter:blur(0);transform:none}}
+#chap .k{opacity:0;transition:opacity 1.2s 1.6s}
+#chap.on .k{opacity:.6}
+@media (prefers-reduced-motion:reduce){#chap::before{animation:none}#chap .t span{opacity:1;filter:none;transform:none;animation:none!important}}
+#chat{max-height:70svh;overflow:hidden;-webkit-mask-image:linear-gradient(transparent,#000 16%);mask-image:linear-gradient(transparent,#000 16%)}
+#igwrap{width:min(92vw,26rem);background:#0b0b10;border:1px solid #262626;border-radius:22px;padding:.9rem .9rem .8rem;box-shadow:0 20px 70px rgba(0,0,0,.7),0 0 60px rgba(214,0,170,.12);transition:opacity 1.1s}
+#igwrap #chat{width:100%;min-height:19rem;margin-top:.6rem}
+#ighead{display:flex;align-items:center;gap:.7rem;padding-bottom:.7rem;border-bottom:1px solid #1d1d22;text-align:left}
+#ighead .av{width:2.7rem;height:2.7rem;border-radius:50%;background:linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5);display:flex;align-items:center;justify-content:center;flex:none}
+#ighead .av b{width:2.3rem;height:2.3rem;border-radius:50%;background:#1a1a22;border:2px solid #0b0b10;display:flex;align-items:center;justify-content:center;font-weight:400;font-size:1.1rem;color:#fff}
+#ighead .av b::before{content:"A"}
+#igname{font-weight:400;font-size:1rem;line-height:1.2}
+#ighead small{opacity:.65;font-size:.78rem}
+#ighead small u{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3ddc84;margin-right:.35rem;text-decoration:none}
+#ighead .ic{margin-left:auto;font-size:1.05rem;opacity:.8}
+#igbar{display:flex;align-items:center;gap:.6rem;margin-top:.7rem;padding:.55rem .9rem;border:1px solid #2a2a31;border-radius:999px;font-size:.95rem}
+#igbar em{flex:1;font-style:normal;opacity:.45;text-align:left}
+.bub.me{background:linear-gradient(135deg,#7638fa 0%,#d300c5 52%,#ff0069 100%)!important;box-shadow:0 4px 18px rgba(214,0,170,.3)!important;border-bottom-right-radius:5px}
+.bub.her{background:#262626!important;border-bottom-left-radius:5px}
+.bub.dots span{background:#bbb}
+.seen{align-self:flex-end;font-size:.72rem;opacity:.5;margin-top:-.4rem;margin-right:.3rem}
+#il:empty{display:none}
+#seals{gap:.7rem}#seals button{width:3.5rem;height:3.5rem;font-size:1.5rem}
+#call{position:fixed;inset:0;z-index:22;background:radial-gradient(ellipse at 50% 30%,#3a1240,#0a0510 70%);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:max(3rem,env(safe-area-inset-top)) 1.5rem max(3.2rem,env(safe-area-inset-bottom));opacity:0;pointer-events:none;transition:opacity .9s;text-align:center}
+#call.on{opacity:1;pointer-events:auto}
+#call .ctop{display:flex;flex-direction:column;gap:.2rem}
+#cst{font-size:.9rem;letter-spacing:.2em;text-transform:uppercase;opacity:.65}
+#cnm{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(2.4rem,10vw,3.6rem);color:var(--rose);line-height:1.2}
+#ctm{opacity:.75;font-size:1rem}
+.cav{position:relative;width:8.5rem;height:8.5rem;display:flex;align-items:center;justify-content:center}
+.cav span{position:relative;width:7rem;height:7rem;border-radius:50%;background:linear-gradient(135deg,#7638fa,#d300c5,#ff0069);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:3.4rem;transform:scale(calc(1 + var(--a,0)*.12))}
+.cav i{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,107,139,.6);animation:rg 2s infinite}
+.cav i:nth-child(2){animation-delay:1s}
+@keyframes rg{from{transform:scale(.8);opacity:.9}to{transform:scale(1.6);opacity:0}}
+#cwv{display:flex;gap:3px;align-items:center;height:64px;opacity:0;transition:opacity .8s}
+#cwv i{width:4px;height:8px;border-radius:2px;background:linear-gradient(var(--rose),var(--gold));transition:height .08s}
+#csub{min-height:4.5rem;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:1.5rem;line-height:1.5;max-width:24ch;opacity:0;transition:opacity .8s}
+#csub.on{opacity:1}
+.cbt{display:flex;gap:4.5rem}
+.cbt button{width:4.4rem;height:4.4rem;border-radius:50%;border:0;font-size:1.7rem;color:#fff;cursor:pointer}
+#cdec{background:#e0245e}#cacc{background:#2fd16a;animation:sh2 .9s infinite}
+@keyframes sh2{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}}
+#banner{position:fixed;top:max(.6rem,env(safe-area-inset-top));left:50%;transform:translate(-50%,-150%);width:min(92vw,24rem);z-index:40;background:rgba(38,38,46,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:18px;padding:.75rem .9rem;display:flex;gap:.75rem;align-items:center;transition:transform .7s cubic-bezier(.2,.9,.2,1);cursor:pointer;text-align:left;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+#banner.show{transform:translate(-50%,0)}
+#banner .bi{width:2.5rem;height:2.5rem;border-radius:11px;background:linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5);display:flex;align-items:center;justify-content:center;flex:none;font-style:normal}
+#banner small{display:block;font-size:.68rem;letter-spacing:.08em;opacity:.6}
+#banner b{font-weight:400;font-size:.98rem;line-height:1.2;display:block}
+#banner span{font-size:.9rem;opacity:.85}
+#mc{display:none;flex-direction:column;align-items:center;gap:.25rem;padding:1.4rem 1.6rem;border-radius:20px;background:linear-gradient(160deg,rgba(118,56,250,.28),rgba(255,0,105,.22));border:1px solid rgba(255,214,138,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 0 50px rgba(255,0,105,.3);opacity:0;transition:opacity 1.6s;margin-bottom:.4rem;min-width:min(80vw,17rem)}
+#mc.on{opacity:1}
+#mc .mh{font-size:2rem;color:var(--rose)}
+#mc b{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(1.9rem,7vw,2.6rem);color:var(--gold);line-height:1.2}
+#mc small{opacity:.65;font-size:.82rem;letter-spacing:.05em}
+#mc i{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.15rem;opacity:.9;margin-top:.3rem}
+#candle{position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);z-index:3;display:none;flex-direction:column;align-items:center;cursor:pointer;padding:2rem 3rem}
+#candle::before{content:"";position:absolute;width:20rem;height:20rem;top:-6rem;border-radius:50%;background:radial-gradient(rgba(255,160,70,.35),transparent 65%);animation:fk2 2s infinite alternate;transition:opacity 1.2s}
+@keyframes fk2{to{transform:scale(1.12);opacity:.8}}
+#candle .fl{position:relative;width:26px;height:56px;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;background:radial-gradient(ellipse at 50% 78%,#fff 0,#ffe3a1 28%,#ff8a3d 62%,transparent 72%);filter:drop-shadow(0 0 20px #ff9a4d);animation:fk .2s infinite alternate;transition:opacity .5s,transform .8s}
+@keyframes fk{to{transform:scale(1.07,.93) rotate(2.5deg)}}
+#candle .wk{position:relative;width:3px;height:14px;background:#2a1a1a}
+#candle .wx{position:relative;width:46px;height:104px;border-radius:6px;background:linear-gradient(90deg,#d9c39a,#f6ead2 45%,#d3bb8d)}
+#candle.out .fl{opacity:0;transform:translateY(-30px) scale(.2)}
+#candle.out::before{opacity:0;animation:none}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<canvas id="c" aria-hidden="true"></canvas>
+<div id="vig" aria-hidden="true"></div>
+<div class="fx" id="hud"></div>
+<div class="fx" id="card" role="status" aria-live="polite"></div>
+<div class="fx" id="sub" aria-live="polite"></div>
+<button class="fx btn rose" id="nb"></button>
+<div class="fx" id="seals"></div>
+<div class="fx" id="love">
+  <h2 id="iluv"></h2>
+  <div id="mc"><span class="mh">♥</span><b id="mcn"></b><small id="mcd"></small><i>Humari kahani ka pehla din</i></div>
+  <p class="q" id="lq"></p>
+  <div class="row" id="ans"><button class="btn rose" id="yes">Mujhe bhi ❤️</button><button class="btn" id="no" aria-disabled="true">Nahi 😂</button></div>
+  <p class="msg" id="msg"></p>
+  <div class="row"><a class="btn rose" id="ig" style="display:none;text-decoration:none" target="_blank" rel="noopener">Instagram par aao</a></div>
+  <p class="note" id="nt" style="display:none"></p>
+</div>
+<div class="fx" id="toast" role="status"></div>
+<button class="fx" id="snd" aria-label="Music on ya off">♪</button>
+<div id="gate">
+  <div id="igwrap">
+    <div id="ighead"><i class="av"><b></b></i><div><div id="igname"></div><small><u></u>Active now</small></div><span class="ic">📞 📹</span></div>
+    <div id="chat" aria-live="polite"></div>
+    <div id="igbar"><span>📷</span><em>Message...</em><span>🎤 🖼️</span></div>
+  </div>
+  <p id="il" aria-live="polite"></p>
+  <div id="scan" role="button" aria-label="Ungli rakho aur rokay rakho" tabindex="0"><span>☝</span></div>
+  <p id="sct"></p>
+  <div id="cd" aria-hidden="true"></div>
+</div>
+<div class="door" id="dl"></div><div class="door" id="dr"></div>
+<div id="flash"></div>
+<div id="call" aria-live="polite"><div class="ctop"><span id="cst">Incoming voice call</span><b id="cnm">Ali ♥</b><small id="ctm">ringing...</small></div>
+  <div><div class="cav"><i></i><i></i><span>A</span></div></div>
+  <div><div id="cwv"></div><p id="csub"></p></div>
+  <div class="cbt"><button id="cdec" aria-label="Kaato">✕</button><button id="cacc" aria-label="Utha lo">📞</button></div></div>
+<div id="banner" role="status"><i class="bi">📷</i><div><small>INSTAGRAM · abhi</small><b id="bt"></b><span id="bb"></span></div></div>
+<div id="candle" role="button" aria-label="Diya bujhao"><div class="fl"></div><div class="wk"></div><div class="wx"></div></div>
+<div id="chap"><span class="n"></span><h2 class="t"></h2><i class="ln"></i><span class="k"></span></div>
+<div class="fx" id="paper" aria-live="polite"></div>
+<div id="blk"><p id="blkt"></p></div>
+<div class="fx" id="meter"><div id="mv">0%</div><input id="mr" type="range" min="0" max="100" value="0" aria-label="Pyaar ka meter"></div>
+
+<script>
+/* ====== YAHAN SIRF YE BADLO ====== */
+const CONFIG={
+  herName:"Areshey",
+  myName:"Ali",
+  intro:["Areshey, ye website sirf tumhare liye hai.","Is website ka sirf ek hi mehmaan hai.","Teen websites ke baad, ek baat adhoori reh gayi thi.","Agar tum wo nahi ho jo main soch raha hun, yahin ruk jao.","Aur agar ho... to pehchan do."],
+  fin:["Tum ne meri raat roshan kar di. ❤️","Aaj se tum meri kahani ki ek line nahi, poori kahani ho.","Screenshot le lo 📸 ye lamha yaad rakhne ke liye hai."],
+  instagram:"alikhan098716",
+  background:"assets/background.mp4",    // apni background file (mp4/webm ya jpg/png)
+  voiceFile:"assets/confession.mp3",     // tumhari recording
+  musicFile:"assets/favourite-song.mp3", // halki music (agar na ho to koi baat nahi)
+  stars:[
+    ["🌷","Pehle bagh ke 12 phool. Har phool mein ek chhoti si baat thi, sirf tumhare liye.",.18,.55],
+    ["🍕","Wo cheeseburger pizza jo tumne maangi thi. Tumhari chhoti pasand bhi mere liye badi hai.",.28,.28],
+    ["🍜","Noodles ki har lahr mein naya zaiqa. Tumhari baaton mein naya ehsaas.",.42,.45],
+    ["🏮","Kuch roshniyan bas apni fitrat se khoobsurat hoti hain. Tum unhi mein se ho.",.55,.24],
+    ["☕","Coffee ki garmahat kam ho jati hai, magar kuch logon ka khayal dil mein der tak rehta hai.",.72,.32],
+    ["🍰","Tumhare hisse mein khushi zaroor honi chahiye. Hamesha.",.84,.56],
+    ["☺","Tumhari smile koi aam si baat nahi. Ek muskurahat kisi ka poora din khoobsurat bana deti hai.",.7,.72],
+    ["🦋","Wo titli jo us din pakri nahi gayi. Aaj wo tumhare saath ud rahi hai.",.5,.66],
+    ["♫","Tumhara favourite song. Ab jab bhi suna, tum yaad aati ho.",.32,.75]
+  ],
+  scenes:[
+    "Ab tak jo dekha, wo roshni thi.",
+    "Par tumhe dark romance pasand hai. To suno, ek raat ki kahani.",
+    "Aksar us kahani ka hero sab kuch jala deta hai. Main wo nahi hun.",
+    "Main wo hun jo darwaza khula rakhta hai, aur phir bhi har baar tumhari taraf lautta hai.",
+    "Tumhein pata hai? Tumhari ek nazar mere poore din ka mausam badal deti hai.",
+    "Sach bataun? Jab tumhari muskurahat kisi aur ke liye hoti hai, mera dil thora sa jal jata hai. Aur tumhare liye jalna bhi accha lagta hai.",
+    "Par ye aag tumhe qaid karne ke liye nahi. Bas ye batane ke liye ke tum meri nazar mein kitni khaas ho.",
+    "Aur haan, tum bohat khatarnak ho. Meri saari hifazat ek muskurahat se tod deti ho. 😏"
+  ],
+  paper:[
+    "Areshey,",
+    "Ye khat maine kai raaton mein likha hai. Kabhi mitaya, kabhi phir se likha.",
+    "Mujhe wo lafz nahi mile jo tumhari ek muskurahat ke barabar hon.",
+    "Agar mohabbat gunah hai, to main har baar tumhare liye gunahgar banunga.",
+    "Isliye ye khat jala raha hun. Jo kehna hai, ab apni awaaz mein kahunga.",
+    "— Ali"
+  ],
+  holdText:"Dil par ungli rakho, aur tab tak rakho jab tak ye dhadakna band na ho.",
+  holdDone:"Ye meri dhadkan thi. Ab paanch raaz tootne wale hain.",
+  secrets:[
+    ["🕯️","Tumhari hansi mein main apna sukoon dhoondhta hun."],
+    ["🥀","Mere andar ek andhera hai, jo sirf tumhari roshni se darta hai."],
+    ["🖤","Ye mohabbat se zyada junoon hai. Aur main is junoon ka shukar karta hun."],
+    ["🌑","Raaton ko main tumhara naam itni baar leta hun, ke andhera bhi use yaad kar chuka hai."],
+    ["🗝️","Aaj nahi to kal, tumhein mera hona hai. Kyunke tum bhi yahi chahti ho, aur mera dil ye jaanta hai."]
+  ],
+  chat:[
+    ["me","Sun rahi ho? Ek baat kehni thi..."],
+    ["her","Haan, bolo na 🙂"],
+    ["me","Tum jab muskurati ho na, meri baat wahin ruk jati hai 😏"],
+    ["her","Hayee... tum bhi na 🙈"],
+    ["me","Dekha? Sharma gayi. Ye sharmana mujhe maar dega."],
+    ["her","Acha... tum kuch bata rahe the?"],
+    ["me","Haan... wahi. Mujhe tum se mohabbat ho gayi hai. 🖤"],
+    ["me","Sach kehta hun. Dil se."],
+    ["me","Aage jo hai, wo maine sirf tumhare liye banaya hai."],
+    ["me","Bas ek shart: poora dekhna. ❤️"]
+  ],
+  haq:[
+    "Ek aur baat. Aaj tumne mujhe bolne ka haq diya.",
+    "To ab main haq se kehta hun: tumhari fikr karne ka haq mera hai.",
+    "Tumhari khamoshi samajhne ka haq. Tum se rooth kar tumhein manane ka haq.",
+    "Tumhari muskurahat par haq. Aur us par jalne ka bhi, bas pyar wala.",
+    "Tumhari aankhon mein der tak dekhne ka haq, jab tak tum sharma kar nazrein na jhuka lo.",
+    "Ye haq mujhe kisi ne diya nahi. Maine kamaya hai, ek ek baat se, ek ek website se.",
+    "Aur jis din tum ek lafz keh dogi, wo haq tumhara bhi hoga: mujh par."
+  ],
+  taps:[
+    ["😏","Pehla tap? Itni jaldi? Lagta hai tum bhi intezaar kar rahi thi."],
+    ["🙈","Dil ke saath tap kar rahi ho... ya dil se?"],
+    ["😉","Pata hai? Tumhein dekh kar meri dhadkan apna rasta bhool jati hai."],
+    ["🔥","Tumhari ye shararat bhari muskurahat mujhe maar degi."],
+    ["💭","Raat ko neend nahi aati, kyunke tum khayalon mein tahalti rehti ho."],
+    ["😈","Aur tap karo... dekhte hain tum mujh se kitni der door reh sakti ho."],
+    ["💓","Tumhari ek 'hmm' mere liye poori ghazal hai."],
+    ["🌙","Tum jab sharmati ho na, chaand bhi mooh chhupa leta hai."],
+    ["🫶","Mujhe tumhari saari adaayein pasand hain, khaas kar wo jo tumhein khud nahi pata."],
+    ["❤️‍🔥","Bas ek tap aur... phir meri awaaz tumhare kaanon mein hogi."]
+  ],
+  meterText:"Ek chhota sa khel: meter ko kheencho, dekhte hain mujhe tum se kitna pyaar hai.",
+  meterDone:"100%... meter toot gaya 😂 Ye sirf 100 tak napta hai. Baaqi sab awaaz mein.",
+  letter:[
+    "Areshey, tumne kaha tha apni feelings batao.",
+    "Aaj tumne bolne ka haq diya, aur main usi haq se keh raha hun: mujhe tum se muhabbat hai.",
+    "Aur ye haq mujhe dene ke liye shukriya."
+  ],
+  loveQ:"Aur ab, sab kuch kehne ke baad...",
+  yesMsg:"Tum ne meri raat roshan kar di. ❤️",
+  noJoke:"Is button ko dabane ki ijazat nahi 😄"
+};
+/* ================================== */
+const $=id=>document.getElementById(id),C=CONFIG,N=C.stars.length;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cv=$('c'),g=cv.getContext('2d');
+let W,H,st='gate',found=[],dust=[],trail=[],amp=0,ringA=0,mode='home',fake=false,an=null,arr=null,pointerSeen=false,dark=false,holding=false,holdP=0,lastT=0,ctx=null,beatT=null,seen=0;
+const bf={x:0,y:0,tx:0,ty:0},S=C.stars.map(([e,t,x,y])=>({e,t,fx:x,fy:y,x:0,y:0,on:false,ph:Math.random()*6}));
+const vib=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
+document.title="Saare Dots, "+C.herName;
+$('lq').textContent=C.loveQ;
+
+/* ---- Files khud dhoondo (naam/format ki fikr nahi) ---- */
+const cap=b=>b.replace(/(^|\/)([a-z])/g,(m,p,c)=>p+c.toUpperCase());
+async function findFile(bases,exts){const c=[];bases.forEach(b=>[b,cap(b)].forEach(v=>exts.forEach(e=>c.push(v+'.'+e))));
+  const r=await Promise.all(c.map(u=>fetch(u,{method:'HEAD'}).then(x=>x.ok&&!/text\/html/.test(x.headers.get('content-type')||'')?u:null).catch(()=>null)));
+  return r.find(Boolean)||null}
+const AX=['mp3','m4a','aac','ogg','opus','wav','mp4'];
+let voiceURL=null,musicURL=null;
+findFile(['assets/confession','confession','assets/voice','voice','assets/recording','recording'],AX).then(u=>{voiceURL=u});
+findFile(['assets/favourite-song','favourite-song','assets/song','song','assets/music','music'],AX).then(u=>{musicURL=u});
+
+/* ---- Background ---- */
+(function(){const bg=$('bg'),L=['assets/',''].flatMap(d=>['mp4','webm','jpg','jpeg','png','webp'].map(e=>d+'background.'+e));
+  if(C.background&&!L.includes(C.background))L.unshift(C.background);
+  (function t(i){if(i>=L.length)return;const f=L[i];
+    if(/\.(mp4|webm|mov)$/i.test(f)){const v=document.createElement('video');v.muted=true;v.loop=true;v.autoplay=true;v.playsInline=true;v.setAttribute('playsinline','');
+      v.onerror=()=>{v.remove();t(i+1)};v.onloadeddata=()=>{v.play().catch(()=>{})};v.src=f;bg.appendChild(v)}
+    else{const im=new Image();im.onload=()=>{bg.style.backgroundImage=`url("${f}")`};im.onerror=()=>t(i+1);im.src=f}})(0)})();
+
+/* ---- Taray / zarray ---- */
+function layout(){S.forEach(s=>{s.x=s.fx*W;s.y=s.fy*H*.82})}
+function resize(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;g.setTransform(d,0,0,d,0,0);layout();if(!dust.length)initDust();setTargets()}
+function initDust(){const n=W<600?380:650;dust=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:0,vy:0,hx:Math.random()*W,hy:Math.random()*H,tx:0,ty:0,ph:Math.random()*6,r:Math.random()*1.4+.7,c1:`hsla(${340+Math.random()*50},100%,${70+Math.random()*15}%,.65)`,c2:`hsla(${345+Math.random()*20},90%,${42+Math.random()*22}%,.75)`}));bf.x=bf.tx=W/2;bf.y=bf.ty=H*.8}
+function namePts(){const o=document.createElement('canvas');o.width=W;o.height=H;const x=o.getContext('2d'),t=C.herName+' \u2665 '+C.myName;
+  x.font=`italic 600 ${Math.min(H*.12,W*1.7/t.length)}px "Cormorant Garamond",Georgia,serif`;x.textAlign='center';x.textBaseline='middle';x.fillStyle='#fff';x.fillText(t,W/2,H*.3);
+  const d=x.getImageData(0,0,W,H).data,a=[];for(let y=0;y<H;y+=3)for(let xx=0;xx<W;xx+=3)if(d[(y*W+xx)*4+3]>128)a.push([xx,y]);
+  if(!a.length)return[[W/2,H*.3]];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function setTargets(){if(mode==='name'){const a=namePts();dust.forEach((p,i)=>{const q=a[i%a.length];p.tx=q[0];p.ty=q[1]});return}
+  const k=Math.min(W*.85,H*.5)/38,cx=W/2,cy=H*.36;
+  dust.forEach(p=>{if(mode==='heart'){const t=Math.random()*6.283,x=16*Math.sin(t)**3,y=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)),q=Math.random()<.4?1:Math.sqrt(Math.random());p.tx=cx+x*k*q;p.ty=cy+y*k*q}else{p.tx=p.hx;p.ty=p.hy}})}
+function setMode(m){mode=m;setTargets()}
+
+/* ---- Awaaz effects ---- */
+function thump(f,v){if(!ctx)return;const t=ctx.currentTime,o=ctx.createOscillator(),e=ctx.createGain();o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(40,t+.18);e.gain.setValueAtTime(v,t);e.gain.exponentialRampToValueAtTime(.001,t+.22);o.connect(e);e.connect(ctx.destination);o.start(t);o.stop(t+.25)}
+function startBeat(){stopBeat();const go=()=>{thump(70,.5);setTimeout(()=>thump(60,.35),260);body.classList.add('shake');setTimeout(()=>body.classList.remove('shake'),350);vib([35,90,25])};go();beatT=setInterval(go,1000)}
+function stopBeat(){clearInterval(beatT);beatT=null}
+const body=document.body,bgEl=document.getElementById('bg');
+let tiltX=0,tiltY=0,tiltTX=0,tiltTY=0;
+addEventListener('deviceorientation',e=>{if(e.gamma==null)return;tiltTX=Math.max(-1,Math.min(1,e.gamma/30));tiltTY=Math.max(-1,Math.min(1,((e.beta||45)-45)/30))});
+function setDark(v){dark=v;body.classList.toggle('dark',v);if(v&&!reduce)startBeat();else stopBeat();if(v)rainOn();else rainOff()}
+
+/* ---- Pointer ---- */
+function move(e){pointerSeen=true;bf.tx=e.clientX;bf.ty=e.clientY-(e.pointerType==='touch'?46:0)}
+addEventListener('pointermove',move);
+addEventListener('pointerdown',e=>{move(e);if(st!=='gate')ripples.push({x:e.clientX,y:e.clientY,r:6,a:.7});if(st==='rhythm')rhythmTap(e.clientX,e.clientY);
+  if(st==='dots'||st==='dotsdone'){if(st==='dots')S.forEach((s,i)=>{if(!s.on&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<42)reveal(i)});shots.forEach(q=>{if(Math.hypot(e.clientX-q.x,e.clientY-q.y)<70&&!q.w){q.w=1;toast('Wish ho gayi 🌠');vib(30)}})}
+  else if(st==='hold')holding=true;
+  else if((st==='scenes'||st==='haq')&&skipFn)skipFn()});
+addEventListener('pointerup',()=>{holding=false});addEventListener('pointercancel',()=>{holding=false});
+
+/* ---- Act 1: dots ---- */
+let shots=[],nextShot=4000;
+let cardT;
+function showCard(e,t,ms){const c=$('card');c.classList.toggle('hi',st==='seals');c.innerHTML='<span class="e"></span><span class="t"></span>';c.firstChild.textContent=e;c.lastChild.textContent=t;c.classList.add('on');clearTimeout(cardT);cardT=setTimeout(()=>c.classList.remove('on'),ms||5200)}
+function reveal(i){const s=S[i];s.on=true;sparkBurst(s.x,s.y,34);found.push(i);showCard(s.e,s.t);hud();vib(25);
+  if(found.length===N){st='dotsdone';setTimeout(()=>{$('card').classList.remove('on');$('hud').textContent='Saare dots jud gaye.';showBtn('Aage chalo',()=>chap(3,CH[3],blackout))},3200)}}
+function hud(){$('hud').innerHTML=st==='dots'?`Titli ke saath taray dhoondo &nbsp; <b>${found.length} / ${N}</b>`:''}
+let btnFn=null;
+function showBtn(t,fn){const b=$('nb');b.textContent=t;b.style.display='block';btnFn=fn}
+$('nb').onclick=()=>{$('nb').style.display='none';const f=btnFn;btnFn=null;f&&f()};
+
+/* ---- Music: dheere dheere kam aur band ---- */
+function fadeBgm(v,sec){if(!bgm)return;clearInterval(bgm._f);const from=bgm.volume,steps=Math.max(1,Math.round(sec*20));let i=0;
+  if(v>0&&bgm.paused)bgm.play().catch(()=>{});
+  bgm._f=setInterval(()=>{i++;bgm.volume=Math.max(0,Math.min(1,from+(v-from)*i/steps));if(i>=steps){clearInterval(bgm._f);if(v===0)bgm.pause()}},50)}
+
+/* ---- Chapters, baarish, asli waqt ---- */
+const CH={1:"Pehchan",2:"Titli aur Taray",3:"Andhera",4:"Raat ki Kahani",5:"Dhadkan",6:"Raaz",7:"Haq",8:"Khat",9:"Pyaar ka Meter",10:"Taal",11:"Awaaz",12:"Izhaar"};
+const clock=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+const dateS=()=>new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+let batt=null,t0=Date.now(),rainG=null,drops=[];
+try{navigator.getBattery&&navigator.getBattery().then(b=>{batt=Math.round(b.level*100)})}catch(e){}
+function chap(n,title,cb){const c=$('chap'),tt=c.querySelector('.t');tt.innerHTML='';[...title].forEach((ch,i)=>{const sp=document.createElement('span');sp.textContent=ch===' '?'\u00a0':ch;sp.style.setProperty('--i',i);tt.appendChild(sp)});$('sub').classList.remove('on');$('card').classList.remove('on');
+  c.querySelector('.n').textContent='Chapter '+n+' / 12';c.querySelector('.k').textContent=clock()+'  ·  '+dateS();
+  c.classList.add('on');thump(70,.6);vib(30);setTimeout(()=>{c.classList.remove('on');setTimeout(cb,reduce?200:900)},reduce?900:3400)}
+function rainOn(){if(!ctx||rainG)return;const n=ctx.sampleRate*2|0,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+  const sr=ctx.createBufferSource(),f=ctx.createBiquadFilter();rainG=ctx.createGain();sr.buffer=b;sr.loop=true;f.type='highpass';f.frequency.value=1400;
+  rainG.gain.setValueAtTime(0,ctx.currentTime);rainG.gain.linearRampToValueAtTime(.055,ctx.currentTime+3);sr.connect(f);f.connect(rainG);rainG.connect(ctx.destination);sr.start()}
+function rainOff(){if(rainG&&ctx){rainG.gain.linearRampToValueAtTime(0,ctx.currentTime+2.5);rainG=null}}
+
+/* ---- Khat (chapter 8) ---- */
+function startLetter2(){st='letter';$('hud').textContent='';const p=$('paper');p.classList.remove('burn');p.style.display='block';p.textContent='';requestAnimationFrame(()=>p.classList.add('on'));
+  const txt=C.paper.join('\n\n');let i=0;
+  setTimeout(function t(){p.textContent=txt.slice(0,++i);if(i%4===0)vib(4);if(i<txt.length)setTimeout(t,reduce?0:48);else setTimeout(burnLetter,2800)},1400)}
+let micS=null,micI=null;
+function stopMic(){clearInterval(micI);if(micS){micS.getTracks().forEach(t=>t.stop());micS=null}}
+function micBlow(cb){if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!location.protocol.startsWith('http'))return;
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{micS=stream;const a2=new(window.AudioContext||window.webkitAudioContext)(),src=a2.createMediaStreamSource(stream),n2=a2.createAnalyser();n2.fftSize=512;src.connect(n2);const d=new Uint8Array(n2.fftSize);let hot=0;
+    micI=setInterval(()=>{n2.getByteTimeDomainData(d);let m=0;for(let i=0;i<d.length;i++){const v=Math.abs(d[i]-128)/128;if(v>m)m=v}hot=m>.45?hot+1:0;if(hot>=3)cb()},50)}).catch(()=>{})}
+function startLetter(){st='candle';$('hud').textContent='';const c=$('candle');c.className='';c.style.display='flex';say("Diya bujha do. Phoonk maro, ya diye par tap karo.",null,0,'top');
+  let done=false;const out=()=>{if(done)return;done=true;stopMic();c.classList.add('out');vib([40,30,80]);thump(55,.7);dust.forEach(q=>{q.vx=(Math.random()-.5)*2;q.vy=-1-Math.random()*4});$('sub').classList.remove('on');
+    setTimeout(()=>{c.style.display='none';say("Andhera... ab khat padho.",null,0,'top');setTimeout(()=>{$('sub').classList.remove('on');startLetter2()},2300)},1300)};
+  c.onclick=out;micBlow(out)}
+function burnLetter(){const p=$('paper');p.classList.remove('on');p.classList.add('burn');vib([60,40,60,40,220]);thump(120,.5);
+  dust.forEach(q=>{q.vx=(Math.random()-.5)*4;q.vy=-3-Math.random()*7});
+  setTimeout(()=>{p.style.display='none';chap(9,CH[9],startMeter)},3700)}
+
+/* ---- Suspense: blackout + bijli ---- */
+function thunder(){if(!ctx)return;const t=ctx.currentTime,n=ctx.sampleRate*2.5|0,b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.2);const s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),e=ctx.createGain();s.buffer=b;f.type='lowpass';f.frequency.value=380;e.gain.value=1.1;s.connect(f);f.connect(e);e.connect(ctx.destination);s.start(t)}
+function flashN(){const f=$('flash');f.style.transition='none';f.style.opacity=1;requestAnimationFrame(()=>{f.style.transition='opacity .5s';f.style.opacity=0})}
+function blackout(){st='blackout';$('hud').textContent='';$('card').classList.remove('on');fadeBgm(.03,1);
+  const b=$('blk'),t=$('blkt');b.classList.add('on');const L=[`Abhi ${clock()} baj rahe hain. Is lamhe mein bhi mera dil tumhare naam par dhadak raha hai.`,"Shh... kuch sunai de raha hai.","Ye roshni yahin tak thi.","Ab andhera meri baat sunega."];let i=0;
+  (function n(){if(i>=L.length)return strike();t.classList.remove('on');setTimeout(()=>{t.textContent=L[i++];t.classList.add('on');setTimeout(n,reduce?1500:2700)},900)})()}
+function strike(){const t=$('blkt');t.classList.remove('on');
+  setTimeout(()=>{flashN();thunder();vib([200,60,300]);body.classList.add('shake');setTimeout(()=>{flashN();thump(50,1)},380);
+    setTimeout(()=>{$('blk').classList.remove('on');body.classList.remove('shake');fadeBgm(.13,2);chap(4,CH[4],startScenes)},950)},1600)}
+
+/* ---- Act 2: andhera ---- */
+let skipFn=null,sceneT;
+function say(text,cb,ms,low){const s=$('sub');s.classList.remove('on');setTimeout(()=>{s.className='fx '+(low==='top'?'top ':low?'low ':'')+'on';s.textContent=text;if(cb){let done=false;const nx=()=>{if(done)return;done=true;clearTimeout(sceneT);skipFn=null;s.classList.remove('on');setTimeout(cb,900)};skipFn=nx;sceneT=setTimeout(nx,ms||6200)}},700)}
+function startScenes(){st='scenes';$('hud').textContent='';$('card').classList.remove('on');
+  let i=0;(function nx(){if(i>=C.scenes.length){return chap(5,CH[5],startHold)}
+    if(i===1)setDark(true);
+    say(C.scenes[i++],nx)})()}
+function startHold(){st='hold';setMode('heart');say(C.holdText,null,0,true)}
+function holdDone(){st='seals';holding=false;holdP=0;vib([80,60,80,60,200]);$('sub').classList.remove('on');
+  setTimeout(()=>chap(6,CH[6],()=>{say(C.holdDone,null,0,'top');const sl=$('seals');sl.innerHTML='';sl.style.display='flex';
+    C.secrets.forEach(([e,t])=>{const b=document.createElement('button');b.textContent=e;b.setAttribute('aria-label','Raaz kholo');
+      b.onclick=()=>{if(!b.classList.contains('seen')){b.classList.add('seen');seen++;vib(40)}showCard(e,t,7000);if(seen===C.secrets.length)setTimeout(()=>{sl.style.display='none';$('card').classList.remove('on');$('sub').classList.remove('on');chap(7,CH[7],startHaq)},7600)};sl.appendChild(b)})}),1200)}
+
+/* ---- Haq + meter ---- */
+function toast(m){const T=$('toast');T.textContent=m;T.classList.add('on');clearTimeout(T._t);T._t=setTimeout(()=>T.classList.remove('on'),2200)}
+function startHaq(){st='haq';let i=0;(function nx(){if(i>=C.haq.length)return chap(8,CH[8],startLetter);say(C.haq[i++],nx)})()}
+let meterDone=false;
+function startMeter(){st='meter';fadeBgm(.07,6);say((batt!=null?`Tumhare phone ki battery ${batt}% hai, aur mere dil ki poori. `:'')+C.meterText,null,0,false);$('meter').style.display='block'}
+$('mr').addEventListener('input',e=>{const v=+e.target.value;$('mv').textContent=v+'%';if(v>0&&v%10===0)vib(15);
+  if(v>=100&&!meterDone){meterDone=true;vib([60,40,60,40,200]);$('mv').textContent='100% 💥';$('sub').classList.remove('on');
+    setTimeout(()=>{say(C.meterDone,null,0,false)},400);
+    dust.forEach(p=>{const a=Math.random()*6.283,s=5+Math.random()*10;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s});
+    setTimeout(()=>{$('meter').style.display='none';$('sub').classList.remove('on');chap(10,CH[10],startRhythm)},4200)}});
+
+/* ---- Dhadkan milao ---- */
+let hits=0,lastBeat=-1,ripples=[];const RT=700;
+function rh(){$('hud').innerHTML=`Dhadkan milao &nbsp; <b>${hits} / ${C.taps.length}</b>`}
+function startRhythm(){st='rhythm';hits=0;stopBeat();fadeBgm(.04,5);setMode('heart');$('sub').classList.remove('on');setTimeout(()=>say("Dil par tap karo. Har tap par ek raaz-e-dil khulega.",null,0,'top'),600);rh()}
+let lastTap=0;
+function rhythmTap(x,y){const n=performance.now();if(n-lastTap<650)return;lastTap=n;
+  const T=C.taps,m=T[hits];hits++;vib(40);rh();if(m)showCard(m[0],m[1],3000);
+  for(let k=0;k<2;k++)ripples.push({x:W/2,y:H*.36,r:20+k*30,a:.8});
+  if(hits>=T.length){fadeBgm(0,3);st='rhythmdone';vib([80,50,80,50,300]);$('hud').textContent='';$('sub').classList.remove('on');
+    dust.forEach(p=>{const a=Math.random()*6.283,s=5+Math.random()*9;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s});
+    setTimeout(()=>say("Dhadkan mil gayi.",null,0,'top'),300);
+    setTimeout(()=>{$('sub').classList.remove('on');$('card').classList.remove('on');st='voiceready';showBtn('📞 Ek call aa raha hai...',()=>chap(11,CH[11],showCall))},3600)}}
+
+/* ---- Phone call (chapter 11) ---- */
+let callOpen=false,ringI=null,callSec=0,callTI=null,wvI=null;
+const fmt=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+(function(){const w=$('cwv');for(let i=0;i<30;i++)w.appendChild(document.createElement('i'))})();
+function ringOnce(){if(!ctx)return;const t=ctx.currentTime;[0,.55].forEach(d=>[440,480].forEach(f=>{const o=ctx.createOscillator(),e=ctx.createGain();o.frequency.value=f;e.gain.setValueAtTime(0,t+d);e.gain.linearRampToValueAtTime(.07,t+d+.03);e.gain.setValueAtTime(.07,t+d+.38);e.gain.linearRampToValueAtTime(0,t+d+.44);o.connect(e);e.connect(ctx.destination);o.start(t+d);o.stop(t+d+.5)}))}
+function bars(){const a=Math.min(1,amp*2.2+(fake?.15:0)),w=$('cwv').children;for(let i=0;i<w.length;i++)w[i].style.height=(8+Math.random()*a*52)+'px';$('call').style.setProperty('--a',a.toFixed(2))}
+function showCall(){st='call';callOpen=true;$('hud').textContent='';$('call').classList.add('on');$('ctm').textContent='ringing...';$('cst').textContent='Incoming voice call';
+  $('cdec').style.display='';$('cacc').style.display='';$('cwv').style.opacity=0;
+  ringOnce();vib([500,250,500,250,500]);ringI=setInterval(()=>{ringOnce();vib([500,250,500])},2900)}
+$('cdec').onclick=()=>{toast('Itni jaldi? Utha lo na 😄');vib([60,40,60])};
+$('cacc').onclick=()=>{clearInterval(ringI);ringI=null;vib(0);$('cdec').style.display='none';$('cacc').style.display='none';$('cst').textContent='Connected';
+  callSec=0;$('ctm').textContent='00:00';callTI=setInterval(()=>{callSec++;$('ctm').textContent=fmt(callSec)},1000);$('cwv').style.opacity=1;wvI=setInterval(bars,70);startVoice()};
+function callLines(lines,done){let i=0;const el=$('csub');(function n(){if(i>=lines.length){el.classList.remove('on');setTimeout(done,1200);return}el.classList.remove('on');setTimeout(()=>{el.textContent=lines[i++];el.classList.add('on');setTimeout(n,4800)},700)})()}
+function endCall(cb){clearInterval(callTI);clearInterval(wvI);$('cst').textContent='Call ended';$('ctm').textContent='Call time '+fmt(callSec);$('cwv').style.opacity=0;$('csub').classList.remove('on');vib([60,40,60]);
+  setTimeout(()=>{$('call').classList.remove('on');callOpen=false;setTimeout(cb,900)},1900)}
+
+/* ---- Act 3: awaaz ---- */
+let bgm=null,voice=null,muted=false,vibT=0;
+function typeLines(lines,done){let i=0;(function n(){if(i>=lines.length){$('sub').classList.remove('on');setTimeout(done,1200);return}say(lines[i++],null);setTimeout(n,5200)})()}
+function startVoice(){st='voice';setMode('heart');stopBeat();fadeBgm(0,.4);
+  voice=new Audio(voiceURL||C.voiceFile);voice.preload='auto';
+  if(location.protocol.startsWith('http')&&ctx){try{const src=ctx.createMediaElementSource(voice);an=ctx.createAnalyser();an.fftSize=64;arr=new Uint8Array(an.frequencyBinCount);src.connect(an);an.connect(ctx.destination)}catch(e){an=null}}
+  const fb=()=>{if(st!=='voice')return;st='voicefb';an=null;fake=false;callLines(C.letter,()=>endCall(()=>chap(12,CH[12],showLove)))};
+  voice.onended=()=>{an=null;fake=false;endCall(()=>chap(12,CH[12],showLove))};voice.onerror=fb;
+  voice.play().then(()=>{if(!an)fake=true}).catch(fb)}
+
+/* ---- Act 4: I love you ---- */
+function showLove(){st='love';setDark(false);setMode('heart');if(bgm){bgm.volume=0;fadeBgm(.3,4)}
+  const l=$('love');l.style.display='flex';requestAnimationFrame(()=>l.classList.add('on'));
+  const t='I love you',h=$('iluv');let i=0;
+  setTimeout(function n(){h.textContent=t.slice(0,++i);if(i<t.length)setTimeout(n,reduce?0:160);else{vib([60,60,60,60,200])}},1200)}
+$('no').addEventListener('click',()=>{const T=$('toast');T.textContent=C.noJoke;T.classList.add('on');vib(30);setTimeout(()=>T.classList.remove('on'),2200)});
+let fw=[],pet=[],fwOn=false,petOn=false;
+function burst(x,y){const h=Math.random()*60+330;for(let i=0;i<46;i++){const a=6.283*i/46,v=2+Math.random()*3.2;fw.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,a:1,h})}thump(170,.16)}
+function showMsg(t,d){setTimeout(()=>{const m=$('msg');m.style.opacity=0;setTimeout(()=>{m.textContent=t;m.style.opacity=1},550)},d)}
+function ding(){if(!ctx)return;const t=ctx.currentTime,o=ctx.createOscillator(),e=ctx.createGain();o.frequency.setValueAtTime(1320,t);o.frequency.exponentialRampToValueAtTime(990,t+.3);e.gain.setValueAtTime(.18,t);e.gain.exponentialRampToValueAtTime(.001,t+.5);o.connect(e);e.connect(ctx.destination);o.start(t);o.stop(t+.55)}
+function showBanner(link){const b=$('banner');$('bt').textContent=C.instagram.replace('@','');$('bb').textContent='Ab meri baari 😉 Mujhe bhi jawab do.';b.onclick=()=>{location.href=link};
+  b.classList.add('show');ding();vib([50,40,50]);setTimeout(()=>b.classList.remove('show'),7000)}
+function showCard2(){$('iluv').style.display='none';$('mcn').textContent=C.herName+' ♥ '+C.myName;$('mcd').textContent=clock()+'  ·  '+dateS();const m=$('mc');m.style.display='flex';requestAnimationFrame(()=>m.classList.add('on'))}
+function finale(){st='finale';$('ans').style.display='none';$('lq').style.display='none';
+  const f=$('flash');f.style.transition='none';f.style.opacity=1;requestAnimationFrame(()=>{f.style.transition='opacity 1.4s';f.style.opacity=0});
+  [0,330,660].forEach(d=>setTimeout(()=>{thump(90,.8);body.classList.add('shake');setTimeout(()=>body.classList.remove('shake'),300)},d));vib([120,60,120,60,400]);
+  dust.forEach(p=>{const a=Math.random()*6.283,s=8+Math.random()*18;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s});
+  fadeBgm(.55,2);fwOn=true;petOn=true;if(!reduce)for(let i=0;i<22;i++)spawnFly(false);
+  const fi=setInterval(()=>{if(fwOn)burst(W*(.12+Math.random()*.76),H*(.1+Math.random()*.38))},700);
+  setTimeout(()=>setMode('heart'),1300);setTimeout(()=>setMode('name'),7000);
+  const mins=Math.max(1,Math.round((Date.now()-t0)/60000));
+  showMsg(C.fin[0],1500);showMsg(C.fin[1],8200);showMsg(`Tum ne ${mins} minute mere saath guzaare. Mere liye wo poori zindagi jitne the.`,14200);showMsg(C.fin[2],20200);setTimeout(showCard2,20900);
+  setTimeout(()=>{
+    const u=C.instagram.replace('@',''),web='https://instagram.com/'+u,link=/android/i.test(navigator.userAgent)?`intent://instagram.com/_u/${u}/#Intent;package=com.instagram.android;scheme=https;S.browser_fallback_url=${encodeURIComponent(web)};end`:web;
+    const ig=$('ig');ig.href=link;ig.removeAttribute('target');ig.textContent='😂 Mazak hai... Instagram aa jao ↗';ig.style.display='inline-block';
+    const nt=$('nt');nt.style.display='block';showBanner(link);
+    let n=9;nt.textContent=`Instagram ${n} second mein khul jayega...`;
+    const iv=setInterval(()=>{n--;if(n<=0){clearInterval(iv);nt.textContent='Instagram khul raha hai... 😄';location.href=link}else nt.textContent=`Instagram ${n} second mein khul jayega...`},1000)},23500);
+  setTimeout(()=>clearInterval(fi),60000)}
+$('yes').onclick=finale;
+
+/* ---- Frame ---- */
+let sparks=[],flock=[],nameA=0;
+function sparkBurst(x,y,n){for(let i=0;i<n;i++){const a=Math.random()*6.283,v=1+Math.random()*3.2;sparks.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,a:1,h:Math.random()<.5?45:340,r:1.2+Math.random()*2.2})}}
+function spawnFly(below){flock.push({x:W*(.1+Math.random()*.8),y:below?H+Math.random()*H*.4:H*(.3+Math.random()*.7),hue:[330,350,20,45,300][Math.random()*5|0],sz:.26+Math.random()*.34,ph:Math.random()*6,rise:.5+Math.random()*1.1})}
+function drawBF(x,y,sz,flap,ang,hue,rich){
+  g.save();g.translate(x,y);g.rotate(ang);g.scale(sz,sz);g.globalCompositeOperation='source-over';
+  if(rich){g.shadowColor=`hsla(${hue},100%,65%,.85)`;g.shadowBlur=24}
+  for(const sd of[-1,1]){g.save();g.scale(sd*flap,1);
+    let fill=`hsl(${hue},92%,62%)`;
+    if(rich){const r=g.createRadialGradient(8,-8,1,14,-8,26);r.addColorStop(0,`hsl(${hue+45},100%,82%)`);r.addColorStop(.45,`hsl(${hue},95%,62%)`);r.addColorStop(1,`hsl(${hue-30},80%,26%)`);fill=r}
+    g.fillStyle=fill;g.beginPath();g.moveTo(0,-1);g.bezierCurveTo(8,-28,32,-28,27,-6);g.bezierCurveTo(24,2,10,4,0,0);g.fill();
+    g.beginPath();g.moveTo(0,1);g.bezierCurveTo(14,2,25,12,15,23);g.bezierCurveTo(8,27,2,14,0,3);g.fill();
+    if(rich){g.shadowBlur=0;g.strokeStyle='rgba(60,10,35,.4)';g.lineWidth=.7;g.beginPath();g.moveTo(1,-2);g.lineTo(23,-15);g.moveTo(1,-1);g.lineTo(24,-5);g.moveTo(1,2);g.lineTo(14,18);g.stroke();
+      g.fillStyle='rgba(255,255,255,.85)';for(const [px,py,pr] of [[22,-14,2.2],[16,-19,1.6],[25,-8,1.5],[13,16,1.7]]){g.beginPath();g.arc(px,py,pr,0,6.283);g.fill()}
+      g.shadowColor=`hsla(${hue},100%,65%,.85)`;g.shadowBlur=24}
+    g.restore()}
+  g.shadowBlur=0;g.fillStyle='#2a0f1f';g.beginPath();g.ellipse(0,2,1.7,9.5,0,0,6.283);g.fill();
+  g.strokeStyle='#2a0f1f';g.lineWidth=.9;g.beginPath();g.moveTo(0,-7);g.quadraticCurveTo(-3,-14,-7,-16);g.moveTo(0,-7);g.quadraticCurveTo(3,-14,7,-16);g.stroke();
+  g.restore()}
+function wing(s,f,col){g.fillStyle=col;g.beginPath();g.ellipse(s*9*f,-7,9*f,13,s*.5,0,6.283);g.fill();g.beginPath();g.ellipse(s*7*f,8,6*f,8.5,-s*.4,0,6.283);g.fill()}
+function frame(ts){
+  const dt=Math.min(60,ts-lastT||16);lastT=ts;
+  g.clearRect(0,0,W,H);g.globalCompositeOperation='lighter';
+  const beat=Math.pow(Math.max(0,Math.sin(ts/(dark&&st!=='voice'?318:420))),6);
+  const pulse=st==='rhythm'?Math.pow(Math.max(0,Math.cos(ts/RT*6.283)),10)*.09:(mode==='heart'&&!reduce?beat*.05:0);
+  if(st==='rhythm'){const bi=Math.floor(ts/RT);if(bi!==lastBeat){lastBeat=bi;thump(80,.5);vib(16)}}
+  tiltX+=(tiltTX-tiltX)*.08;tiltY+=(tiltTY-tiltY)*.08;if(!reduce)bgEl.style.transform=`translate(${(-tiltX*14).toFixed(1)}px,${(-tiltY*14).toFixed(1)}px) scale(1.08)`;
+  if((st==='voice')&&fake)amp=.25+.2*Math.sin(ts/190);
+  else if(an){an.getByteFrequencyData(arr);let a=0;for(let i=0;i<arr.length;i++)a+=arr[i];amp+=((a/arr.length/140)-amp)*.25}
+  else amp*=.95;
+  if(st==='voice'&&amp>.3&&ts-vibT>650){vibT=ts;vib(28)}
+  if(st==='hold'){if(holding){holdP=Math.min(1,holdP+dt/3000);if(ts-vibT>520){vibT=ts;vib([30,70,30])}if(holdP>=1)holdDone()}else holdP=Math.max(0,holdP-dt/1800)}
+  const hb=st==='hold'?holdP*.12:0;
+  for(const p of dust){
+    const fx=reduce?0:Math.sin(ts/1300+p.ph)*(mode==='heart'?2:14)+tiltX*p.r*9,fy=reduce?0:Math.cos(ts/1500+p.ph)*(mode==='heart'?2:14)+tiltY*p.r*9;
+    const m=pulse+amp*.08+hb,ex=mode==='heart'?(p.tx-W/2)*m:0,ey=mode==='heart'?(p.ty-H*.36)*m:0;
+    p.vx+=(p.tx+fx+ex-p.x)*.012;p.vy+=(p.ty+fy+ey-p.y)*.012;p.vx*=.88;p.vy*=.88;p.x+=p.vx;p.y+=p.vy;
+    g.fillStyle=dark?p.c2:p.c1;g.fillRect(p.x,p.y,p.r,p.r)}
+  if(st==='dots'||st==='dotsdone'){
+    if(ts>nextShot){nextShot=ts+7000+Math.random()*5000;shots.push({x:Math.random()*W*.6+W*.3,y:Math.random()*H*.25,vx:-6-Math.random()*3,vy:3+Math.random()*2,a:1})}
+    for(const q of shots){q.x+=q.vx;q.y+=q.vy;q.a-=.012;g.strokeStyle=`rgba(255,235,190,${Math.max(0,q.a)})`;g.lineWidth=2;g.beginPath();g.moveTo(q.x,q.y);g.lineTo(q.x-q.vx*7,q.y-q.vy*7);g.stroke()}
+    shots=shots.filter(q=>q.a>0);
+    g.lineWidth=1;g.strokeStyle='rgba(255,214,138,.5)';g.beginPath();
+    found.forEach((i,k)=>{const s=S[i];k?g.lineTo(s.x,s.y):g.moveTo(s.x,s.y)});g.stroke();
+    if(found.length===N){ringA=Math.min(1,ringA+.012);g.globalAlpha=ringA;g.beginPath();S.forEach((s,i)=>i?g.lineTo(s.x,s.y):g.moveTo(s.x,s.y));g.closePath();g.stroke();g.globalAlpha=1;nameA=Math.min(1,nameA+.01);g.save();g.globalCompositeOperation='lighter';g.globalAlpha=nameA*.9;g.fillStyle='#ffd68a';g.shadowColor='#ff8aa0';g.shadowBlur=30;g.font=`italic 600 ${Math.min(W*.2,110)}px "Cormorant Garamond",Georgia,serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(C.herName,W/2,H*.45);g.restore()}
+    for(const s of S){const bp=.5+.5*Math.sin(ts/600+s.ph),r=s.on?5:2.2,a=s.on?.95:.25+.3*bp;
+      g.fillStyle=`rgba(255,214,138,${a*.18})`;g.beginPath();g.arc(s.x,s.y,r*4+(s.on?0:bp*3),0,6.283);g.fill();
+      g.fillStyle=`rgba(255,235,190,${a})`;g.beginPath();g.arc(s.x,s.y,r,0,6.283);g.fill();
+      if(st==='dots'&&!s.on&&Math.hypot(bf.x-s.x,bf.y-s.y)<36)reveal(S.indexOf(s))}}
+  if(st==='hold'||(st==='seals'&&holdP>0)){g.lineWidth=4;g.strokeStyle='rgba(255,107,139,.9)';g.beginPath();g.arc(W/2,H*.36,Math.min(W,H)*.34,-Math.PI/2,-Math.PI/2+6.283*holdP);g.stroke()}
+  for(const q of fw){q.vy+=.04;q.x+=q.vx;q.y+=q.vy;q.vx*=.985;q.a-=.012;g.fillStyle=`hsla(${q.h},100%,66%,${Math.max(0,q.a)})`;g.fillRect(q.x,q.y,2.6,2.6)}
+  fw=fw.filter(q=>q.a>0);
+  if(petOn){if(pet.length<42&&Math.random()<.2)pet.push({x:Math.random()*W,y:-12,r:4+Math.random()*5,ph:Math.random()*6,s:.8+Math.random()*1.3});
+    g.globalCompositeOperation='source-over';g.fillStyle='rgba(255,90,125,.8)';
+    for(const q of pet){q.y+=q.s;q.x+=Math.sin(ts/700+q.ph)*.9;g.beginPath();g.ellipse(q.x,q.y,q.r,q.r*.55,Math.sin(ts/500+q.ph),0,6.283);g.fill()}
+    pet=pet.filter(q=>q.y<H+20);g.globalCompositeOperation='lighter'}
+  for(const q of ripples){q.r+=3.2;q.a-=.02;g.strokeStyle=dark?`rgba(255,60,90,${Math.max(0,q.a)})`:`rgba(255,214,138,${Math.max(0,q.a)})`;g.lineWidth=2;g.beginPath();g.arc(q.x,q.y,q.r,0,6.283);g.stroke()}
+  ripples=ripples.filter(q=>q.a>0);
+  if(dark&&!reduce){if(!drops.length)drops=Array.from({length:W<600?70:130},()=>({x:Math.random()*W,y:Math.random()*H,l:10+Math.random()*16,v:11+Math.random()*9}));
+    g.globalCompositeOperation='source-over';g.strokeStyle='rgba(175,195,255,.22)';g.lineWidth=1;g.beginPath();
+    for(const d of drops){d.y+=d.v;d.x-=d.v*.16;if(d.y>H){d.y=-20;d.x=Math.random()*W*1.1}g.moveTo(d.x,d.y);g.lineTo(d.x+d.l*.16,d.y-d.l)}g.stroke();g.globalCompositeOperation='lighter'}
+  for(const q of sparks){q.x+=q.vx;q.y+=q.vy;q.vx*=.98;q.a-=.022;g.fillStyle=`hsla(${q.h},100%,72%,${Math.max(0,q.a)*.9})`;g.beginPath();g.arc(q.x,q.y,q.r*Math.max(.2,q.a),0,6.283);g.fill()}
+  sparks=sparks.filter(q=>q.a>0);
+  if(st==='finale'&&!reduce){if(flock.length<42&&Math.random()<.05)spawnFly(true);
+    for(const q of flock){q.y-=q.rise;q.x+=Math.sin(ts/600+q.ph)*1.1;drawBF(q.x,q.y,q.sz,.22+.78*Math.abs(Math.sin(ts/130+q.ph)),Math.sin(ts/900+q.ph)*.35,q.hue,false)}
+    flock=flock.filter(q=>q.y>-60);g.globalCompositeOperation='lighter'}
+  /* titli */
+  const showBf=st==='dots'||st==='dotsdone'||st==='love'||st==='finale';
+  if(showBf){let tx=bf.tx,ty=bf.ty;
+    if(st==='love'||st==='finale'){tx=W/2;ty=H*.1+Math.sin(ts/900)*8}
+    else if(!pointerSeen&&!reduce){tx=W/2+Math.sin(ts/1700)*W*.3;ty=H*.5+Math.cos(ts/1300)*H*.18}
+    const ox=bf.x,oy=bf.y;bf.x+=(tx-bf.x)*.07;bf.y+=(ty-bf.y)*.07;
+    const vx=bf.x-ox,vy=bf.y-oy,spd=Math.hypot(vx,vy);bf.ang=bf.ang||0;
+    const want=spd>.4?Math.atan2(vy,vx)+Math.PI/2:Math.sin(ts/700)*.15;
+    bf.ang+=(((want-bf.ang+Math.PI)%6.283+6.283)%6.283-Math.PI)*(spd>.4?.12:.05);
+    if(!reduce&&sparks.length<260){for(let k=0;k<(spd>.4?2:1);k++)sparks.push({x:bf.x+(Math.random()-.5)*14,y:bf.y+(Math.random()-.5)*14,vx:(Math.random()-.5)*.8,vy:Math.random()*.7+.2,a:1,h:Math.random()<.5?45:340,r:1+Math.random()*2})}
+    const big=(st==='love'||st==='finale');
+    const f=.22+.78*Math.abs(Math.sin(ts/(big?300:105)));
+    drawBF(bf.x,bf.y,big?1.55:1.05,f,bf.ang,335+Math.sin(ts/2000)*18,true);g.globalCompositeOperation='lighter'}
+  requestAnimationFrame(frame)}
+
+/* ---- Shuru ---- */
+function riser(){if(!ctx)return()=>{};const t=ctx.currentTime,o=ctx.createOscillator(),e=ctx.createGain();o.type='sawtooth';o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(420,t+2.6);e.gain.setValueAtTime(.0001,t);e.gain.exponentialRampToValueAtTime(.05,t+2.4);o.connect(e);e.connect(ctx.destination);o.start(t);
+  return()=>{try{const n=ctx.currentTime;e.gain.cancelScheduledValues(n);e.gain.setValueAtTime(e.gain.value,n);e.gain.exponentialRampToValueAtTime(.0001,n+.15);o.stop(n+.2)}catch(x){}}}
+let audioOn=false;
+function audioInit(){if(audioOn)return;audioOn=true;
+  try{ctx=new(window.AudioContext||window.webkitAudioContext)();ctx.resume&&ctx.resume()}catch(e){}
+  try{if(!musicURL)throw 0;bgm=new Audio(musicURL);bgm.loop=true;bgm.volume=.1;bgm.play().then(()=>{$('snd').style.display='block'}).catch(()=>{bgm=null})}catch(e){}}
+/* Suspense shuruat */
+function startIntro(){const il=$('il');let i=0;
+  (function n(){if(i>=C.intro.length){$('scan').style.display='flex';$('sct').textContent=C.herName+'? Ungli rakho aur rokay rakho.';return}
+    il.classList.remove('on');setTimeout(()=>{il.textContent=C.intro[i++];il.classList.add('on');setTimeout(n,reduce?1500:3300)},reduce?200:1300)})()}
+/* Pehla message (Instagram chat) */
+(function(){const c=$('chat'),wrap=$('igwrap');$('igname').textContent=C.herName.toLowerCase();let i=0;
+  const mk=(cls,html)=>{const b=document.createElement('div');b.className=cls;if(html)b.innerHTML=html;c.appendChild(b);requestAnimationFrame(()=>requestAnimationFrame(()=>b.classList.add('in')));return b};
+  const add=(who,t)=>{const b=mk('bub '+who);b.textContent=t;vib(12);if(/mohabbat/i.test(t)){vib([60,50,90,50,160]);body.classList.add('shake');setTimeout(()=>body.classList.remove('shake'),400)}};
+  setTimeout(function n(){if(i>=C.chat.length){const sn=document.createElement('div');sn.className='seen';sn.textContent='Seen';setTimeout(()=>c.appendChild(sn),700);
+      setTimeout(()=>{wrap.style.opacity=0;setTimeout(()=>{wrap.style.display='none';startIntro()},1200)},reduce?900:3000);return}
+    const [who,t]=C.chat[i++],d=reduce?0:(who==='her'?1700:1000),ty=reduce?null:mk('bub her dots','<span></span><span></span><span></span>');
+    if(who==='me'&&ty){ty.remove()}
+    setTimeout(()=>{if(who==='her'&&ty)ty.remove();add(who,t);setTimeout(n,reduce?0:(who==='her'?1100:800))},d)},900)})();
+let scanP=0,scanning=false,scanOk=false,scanI=null,stopRiser=null,lastV=0;
+function scanTick(){if(scanOk)return;
+  if(scanning){scanP=Math.min(100,scanP+40/2600*100);const n=Date.now();if(n-lastV>420){lastV=n;vib(22)}if(scanP>=100)return scanSuccess()}
+  else scanP=Math.max(0,scanP-3);
+  $('scan').style.setProperty('--p',scanP);if(!scanning&&scanP===0){clearInterval(scanI);scanI=null}}
+function scanStart(e){if(scanOk)return;e.preventDefault();audioInit();scanning=true;$('sct').textContent='Pehchan ho rahi hai...';if(!reduce)stopRiser=riser();if(!scanI)scanI=setInterval(scanTick,40)}
+function scanEnd(){if(scanOk||!scanning)return;scanning=false;if(stopRiser){stopRiser();stopRiser=null}if(scanP<100)$('sct').textContent='Thori der aur... ungli mat hatao.'}
+$('scan').addEventListener('pointerdown',scanStart);addEventListener('pointerup',scanEnd);addEventListener('pointercancel',scanEnd);
+$('scan').addEventListener('contextmenu',e=>e.preventDefault());
+function scanSuccess(){scanOk=true;clearInterval(scanI);if(stopRiser){stopRiser();stopRiser=null}
+  $('scan').style.setProperty('--p',100);$('sct').textContent='Pehchan ho gayi ✓';vib([80,50,80]);
+  fadeBgm(.15,2);
+  t0=Date.now();
+  setTimeout(()=>chap(1,CH[1],()=>{$('il').classList.remove('on');$('scan').style.display='none';$('sct').textContent='';
+    const cd=$('cd');cd.style.display='flex';let k=3;
+    (function t(){if(k===0){cd.style.display='none';return openDoors()}
+      cd.textContent=k;thump(95,.8);body.classList.add('shake');setTimeout(()=>body.classList.remove('shake'),300);vib(70);k--;setTimeout(t,reduce?400:950)})()}),900)}
+function openDoors(){const dl=$('dl'),dr=$('dr');dl.style.display=dr.style.display='block';$('gate').style.display='none';
+  thump(60,.9);vib([40,30,40]);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{dl.classList.add('open');dr.classList.add('open')}));
+  setTimeout(()=>{dl.remove();dr.remove()},2600);setTimeout(()=>chap(2,CH[2],()=>{st='dots';hud()}),3000)}
+$('snd').onclick=()=>{if(!bgm)return;muted=!muted;bgm.muted=muted;$('snd').style.opacity=muted?.45:1};
+addEventListener('resize',resize);
+resize();
+(document.fonts&&document.fonts.ready||Promise.resolve()).then(()=>requestAnimationFrame(frame));
+</script>
+</body>
+</html>
